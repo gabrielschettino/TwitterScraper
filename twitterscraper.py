@@ -7,10 +7,11 @@ from pathlib import Path
 import snscrape.modules.twitter as sntwitter
 import pandas as pd
 import csv
-
-# from tkinter import *
+import threading
+import time
+from tkinter import *
 # Explicit imports to satisfy Flake8
-from tkinter import Tk, Canvas, Entry, Text, Button, PhotoImage
+# from tkinter import Tk, Canvas, Entry, Text, Button, PhotoImage
 
 
 OUTPUT_PATH = Path(__file__).parent
@@ -27,7 +28,13 @@ window.geometry("722x473")
 window.configure(bg = "#70E0DE")
 
 def Busca():
-    print("teste")
+    t = threading.Thread(target=BuscaTweets)
+    t.start()
+    while t.is_alive(): 
+        print("Loading...")
+        Tk.update(window) 
+        time.sleep(0.1)
+
 
 def BuscaTweets():
     query = entry_1.get()
@@ -35,11 +42,12 @@ def BuscaTweets():
     tweets = []
     limit = 15000
 
-
     for tweet in sntwitter.TwitterSearchScraper(query).get_items():
         if len(tweets) == limit:
+            qtdtweets = limit
             break
         else:
+            qtdtweets = len(tweets)
             tweets.append([tweet.date, tweet.user.username, tweet.content, tweet.url, tweet.replyCount, tweet.retweetCount, tweet.likeCount])
             
     df = pd.DataFrame(tweets, columns=['Data', 'Username', 'Tweet', 'URL', 'Respostas', 'Retweets', 'Likes'])
@@ -47,6 +55,11 @@ def BuscaTweets():
 
     #salvando para csv
     df.to_csv(nomecsv + ".csv")
+    top = Toplevel(window)
+    top.geometry("750x250")
+    top.title("Tweets Salvos!")
+    Label(top, text= "Total de tweets capturados: " + str(qtdtweets) , font=('Mistral 14 bold')).place(x=150,y=80)
+
 
 
 canvas = Canvas(
@@ -139,7 +152,7 @@ button_1 = Button(
     image=button_image_1,
     borderwidth=0,
     highlightthickness=0,
-    command=lambda: BuscaTweets(),
+    command=lambda: threading.Thread(target=Busca).start(),
     relief="flat"
 )
 button_1.place(
@@ -148,5 +161,6 @@ button_1.place(
     width=272.0,
     height=51.0
 )
+
 window.resizable(False, False)
 window.mainloop()
